@@ -3,11 +3,11 @@ import json
 import sys
 from oauth2client import client
 from googleapiclient import sample_tools, errors
-import dateutil.parser
+from bs4 import BeautifulSoup
 
 url = "https://rfidis.raf.edu.rs/raspored/json.php"
 
-day_to_date = {'PON': '13', 'UTO': '14', 'SRE': '15', 'CET': '16', '?ET': '16', 'PET': '17'}
+day_to_date = {'PON': '6', 'UTO': '7', 'SRE': '8', 'CET': '9', '?ET': '9', 'PET': '10'}
 
 
 def delete_all_calendars(argv):
@@ -114,10 +114,15 @@ def authenticate(argv):
     return service
 
 
-def equal_timestamps(ts1, ts2):
-    d1 = dateutil.parser.parse(ts1)
-    d2 = dateutil.parser.parse(ts2)
-    return d1 == d2 or abs((d1 - d2).hours) == 1
+def create_index_page(all_calendars):
+    html = open("template.html", "r").read()
+    soup = BeautifulSoup(html, 'html.parser')
+    for calendar in all_calendars:
+        new_checkbox = BeautifulSoup('<input type="checkbox" name="chkbx" value="' + calendar['id'] + '" onchange="changeCalendar()">' + calendar['summary'] + '<br>', 'html.parser')
+        soup.find(id="checkboxes").append(new_checkbox)
+    f = open('index.html', 'w')
+    f.write(str(soup))
+    f.close()
 
 
 def main(argv):
@@ -130,6 +135,8 @@ def main(argv):
     delete_all_events(all_calendars, service)
 
     all_calendars = create_calendars_for_entities(entities, all_calendars, service)
+
+    create_index_page(all_calendars)
 
     calendar_ids = {}
     for cal in all_calendars:
@@ -154,7 +161,10 @@ def main(argv):
             'end': {
                 'dateTime': '2017-03-' + day_to_date[entry['dan']] + 'T' + end_time,
                 'timeZone': 'Europe/Belgrade'
-            }
+            },
+            "recurrence": [
+                "RRULE:FREQ=WEEKLY;UNTIL=20170509T220000Z",
+            ],
         }
         interested_entities = entry['nastavnik'] + [entry['ucionica']] + entry['grupe']
         for entity in interested_entities:
