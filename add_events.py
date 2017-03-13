@@ -10,26 +10,8 @@ url = "https://rfidis.raf.edu.rs/raspored/json.php"
 day_to_date = {'PON': '6', 'UTO': '7', 'SRE': '8', 'CET': '9', '?ET': '9', 'PET': '10'}
 
 
-def delete_all_calendars(argv):
-    # Authenticate and construct service.
-    service, flags = sample_tools.init(
-        argv, 'calendar', 'v3', __doc__, __file__,
-        scope='https://www.googleapis.com/auth/calendar')
-    try:
-        page_token = None
-        while True:
-            calendar_list = service.calendarList().list(pageToken=page_token).execute()
-            for calendar_list_entry in calendar_list['items']:
-                if 'primary' not in calendar_list_entry or not calendar_list_entry['primary']:
-                    service.calendars().delete(calendarId=calendar_list_entry['id']).execute()
-            page_token = calendar_list.get('nextPageToken')
-            if not page_token:
-                break
-    except client.AccessTokenRefreshError:
-        print('The credentials have been revoked or expired, please re-run the application to re-authorize.')
-
-
 def delete_all_events(all_calendars, service):
+    print('deleting existing events')
     for c in all_calendars:
         events = get_existing_events(c['id'], service)
         for e in events:
@@ -39,29 +21,11 @@ def delete_all_events(all_calendars, service):
                 pass
 
 
-def create_calendars_for_entities(entities, all_calendars, service):
-    for entity in entities:
-        if entity not in [d['summary'] for d in all_calendars]:
-            calendar = {
-                'summary': entity,
-            }
-            print("creating new calendar for " + str(entity))
-
-            try:
-                created_calendar = service.calendars().insert(body=calendar).execute()
-                all_calendars.append(created_calendar)
-            except errors.HttpError:
-                print('quota limit')
-                break
-
-    return all_calendars
-
-
-def get_existing_events(calendarId, service):
+def get_existing_events(calendar_id, service):
     event_list = []
     page_token = None
     while True:
-        events = service.events().list(calendarId=calendarId, pageToken=page_token).execute()
+        events = service.events().list(calendarId=calendar_id, pageToken=page_token).execute()
         for event in events['items']:
             event_list.append(event)
         page_token = events.get('nextPageToken')
@@ -81,6 +45,17 @@ def get_existing_calendars(service):
         if not page_token:
             break
     return all_calendars
+
+
+def set_public_access(calendars, service):
+    for calendar in calendars:
+        rule = {
+            'scope': {
+                'type': 'default',
+            },
+            'role': 'reader'
+        }
+        service.acl().insert(calendarId=calendar['id'], body=rule).execute()
 
 
 # download json page from url
@@ -118,26 +93,29 @@ def create_index_page(all_calendars):
     html = open("template.html", "r").read()
     soup = BeautifulSoup(html, 'html.parser')
     for calendar in all_calendars:
-        new_checkbox = BeautifulSoup('<input type="checkbox" name="chkbx" value="' + calendar['id'] + '" onchange="changeCalendar()">' + calendar['summary'] + '<br>', 'html.parser')
+        new_checkbox = BeautifulSoup(
+            '<input type="checkbox" name="chkbx" value="' + calendar['id'] + '" onchange="changeCalendar()">' +
+            calendar['summary'] + '<br>', 'html.parser')
         soup.find(id="checkboxes").append(new_checkbox)
     f = open('index.html', 'w')
     f.write(str(soup))
     f.close()
 
 
-def main(argv):
-    service = authenticate(argv)
+def main():
+
+    service = authenticate(sys.argv)
     data, entities = get_data()
 
     all_calendars = get_existing_calendars(service)
 
-    print('deleting existing events')
     delete_all_events(all_calendars, service)
 
     all_calendars = create_calendars_for_entities(entities, all_calendars, service)
 
     create_index_page(all_calendars)
 
+    set_public_access(all_calendars, service)
     calendar_ids = {}
     for cal in all_calendars:
         calendar_ids[cal['summary']] = cal['id']
@@ -176,4 +154,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()
+
