@@ -9,24 +9,33 @@ url = "https://rfidis.raf.edu.rs/raspored/json.php"
 def get_data():
     html = urlopen(url).read().decode('utf-8')
     data = json.loads(html)
-
     for entry in data:
         entry['grupe'] = [s.strip() for s in entry['grupe'].split(',')]
         entry['nastavnik'] = [s.strip() for s in entry['nastavnik'].split(',')]
+    return data
 
-    entities = []
 
+def get_entities():
+    all_entities = get_entities_by_type()
+    return all_entities['classrooms'] + all_entities['lecturers'] + all_entities['groups']
+
+
+def get_entities_by_type():
+    data = get_data()
+    classrooms = []
+    lecturers = []
+    groups = []
     for entry in data:
-        if entry['ucionica'] not in entities:
-            entities.append(entry['ucionica'])
-        for nastavnik in entry['nastavnik']:
-            if nastavnik not in entities:
-                entities.append(nastavnik)
-        for grupa in entry['grupe']:
-            if grupa not in entities:
-                entities.append(grupa)
+        if entry['ucionica'] not in classrooms:
+            classrooms.append(entry['ucionica'])
+        for lacturer in entry['nastavnik']:
+            if lacturer not in lecturers:
+                lecturers.append(lacturer)
+        for group in entry['grupe']:
+            if group not in groups:
+                groups.append(group)
 
-    return data, entities
+    return {'classrooms': sorted(classrooms), 'lecturers': sorted(lecturers), 'groups': sorted(groups)}
 
 
 def get_existing_calendars(service):

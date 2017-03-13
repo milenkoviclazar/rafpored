@@ -2,7 +2,7 @@ import sys
 from oauth2client import client
 from googleapiclient import sample_tools, errors
 from bs4 import BeautifulSoup
-from utils import authenticate, get_existing_calendars, get_data
+from utils import authenticate, get_existing_calendars, get_entities, get_data, get_entities_by_type
 
 day_to_date = {'PON': '6', 'UTO': '7', 'SRE': '8', 'CET': '9', '?ET': '9', 'PET': '10'}
 
@@ -31,14 +31,23 @@ def get_existing_events(calendar_id, service):
     return event_list
 
 
-def create_index_page(all_calendars):
+def create_index_page(all_calendars, entities_by_type):
     html = open("template.html", "r").read()
-    soup = BeautifulSoup(html, 'html.parser')
-    for calendar in all_calendars:
+    soup = BeautifulSoup(html, 'html5lib')
+
+    sorted_calendars = sorted([(c['id'], c['summary']) for c in all_calendars], key=lambda tup: tup[1])
+    for calendar_id, calendar_summary in sorted_calendars:
         new_checkbox = BeautifulSoup(
-            '<input type="checkbox" name="chkbx" value="' + calendar['id'] + '" onchange="changeCalendar()">' +
-            calendar['summary'] + '<br>', 'html.parser')
-        soup.find(id="checkboxes").append(new_checkbox)
+            '<input type="checkbox" name="chkbx" value="' + calendar_id + '" onchange="changeCalendar()" >' +
+            calendar_summary + '<br>', 'html5lib')
+        summary = calendar_summary
+        if summary in entities_by_type['classrooms']:
+            soup.find('div', id="classroom_checkboxes").append(new_checkbox)
+        elif summary in entities_by_type['lecturers']:
+            soup.find('div', id="lecturer_checkboxes").append(new_checkbox)
+        elif summary in entities_by_type['groups']:
+            soup.find('div', id="group_checkboxes").append(new_checkbox)
+
     f = open('index.html', 'w')
     f.write(str(soup))
     f.close()
@@ -46,13 +55,14 @@ def create_index_page(all_calendars):
 
 def main():
     service = authenticate(sys.argv)
-    data, entities = get_data()
+    data = get_data()
+    entities = get_entities()
 
     all_calendars = get_existing_calendars(service)
-    delete_all_events(all_calendars, service)
+    #delete_all_events(all_calendars, service)
 
-    create_index_page(all_calendars)
-
+    create_index_page(all_calendars, get_entities_by_type())
+    quit()
     calendar_ids = {}
     for cal in all_calendars:
         calendar_ids[cal['summary']] = cal['id']

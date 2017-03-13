@@ -1,6 +1,6 @@
 import sys
 from googleapiclient import errors
-from utils import authenticate, get_existing_calendars, get_data
+from utils import authenticate, get_existing_calendars, get_entities
 
 
 # not in use
@@ -37,12 +37,27 @@ def create_calendars_for_entities(entities, existing_calendars, service):
                 break
 
 
+def make_calendars_public(service, calendars):
+    for calendar in calendars:
+        rule = {
+            'scope': {
+                'type': 'default',
+            },
+            'role': 'reader'
+        }
+        print('make calendar public: ' + calendar['summary'])
+        try:
+            service.acl().insert(calendarId=calendar['id'], body=rule).execute()
+        except errors.HttpError:
+            pass
+
+
 def main():
     service = authenticate(sys.argv)
     calendars = get_existing_calendars(service)
-    _, entities = get_data()
+    make_calendars_public(service, calendars)
+    entities = get_entities()
     create_calendars_for_entities(entities, calendars, service)
-
 
 if __name__ == '__main__':
     main()

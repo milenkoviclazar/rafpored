@@ -1,0 +1,8 @@
+#checkboxes {
+    display: table-row;
+}
+
+#classroom_checkboxes, #group_checkboxes, #lecturer_checkboxes {
+    width: 200px;
+    display: table-cell;
+}
