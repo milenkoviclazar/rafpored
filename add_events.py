@@ -59,10 +59,10 @@ def main():
     entities = get_entities()
 
     all_calendars = get_existing_calendars(service)
-    #delete_all_events(all_calendars, service)
+    delete_all_events(all_calendars, service)
 
     create_index_page(all_calendars, get_entities_by_type())
-    quit()
+
     calendar_ids = {}
     for cal in all_calendars:
         calendar_ids[cal['summary']] = cal['id']

@@ -55,7 +55,7 @@ def make_calendars_public(service, calendars):
 def main():
     service = authenticate(sys.argv)
     calendars = get_existing_calendars(service)
-    make_calendars_public(service, calendars)
+    # make_calendars_public(service, calendars)
     entities = get_entities()
     create_calendars_for_entities(entities, calendars, service)
 
