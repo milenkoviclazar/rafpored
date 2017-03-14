@@ -47,6 +47,8 @@ def create_index_page(all_calendars, entities_by_type):
             soup.find('div', id="lecturer_checkboxes").append(new_checkbox)
         elif summary in entities_by_type['groups']:
             soup.find('div', id="group_checkboxes").append(new_checkbox)
+        elif summary in entities_by_type['classes']:
+            soup.find('div', id="class_checkboxes").append(new_checkbox)
 
     f = open('index.html', 'w')
     f.write(str(soup))
@@ -56,7 +58,6 @@ def create_index_page(all_calendars, entities_by_type):
 def main():
     service = authenticate(sys.argv)
     data = get_data()
-    entities = get_entities()
 
     all_calendars = get_existing_calendars(service)
     delete_all_events(all_calendars, service)
@@ -91,7 +92,7 @@ def main():
                 "RRULE:FREQ=WEEKLY;UNTIL=20170509T220000Z",
             ],
         }
-        interested_entities = entry['nastavnik'] + [entry['ucionica']] + entry['grupe']
+        interested_entities = entry['nastavnik'] + [entry['ucionica']] + entry['grupe'] + [entry['predmet']]
         for entity in interested_entities:
             if entity not in calendar_ids:
                 continue

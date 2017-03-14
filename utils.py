@@ -17,7 +17,7 @@ def get_data():
 
 def get_entities():
     all_entities = get_entities_by_type()
-    return all_entities['classrooms'] + all_entities['lecturers'] + all_entities['groups']
+    return all_entities['classrooms'] + all_entities['lecturers'] + all_entities['groups'] + all_entities['classes']
 
 
 def get_entities_by_type():
@@ -25,17 +25,20 @@ def get_entities_by_type():
     classrooms = []
     lecturers = []
     groups = []
+    classes = []
     for entry in data:
         if entry['ucionica'] not in classrooms:
             classrooms.append(entry['ucionica'])
-        for lacturer in entry['nastavnik']:
-            if lacturer not in lecturers:
-                lecturers.append(lacturer)
+        if entry['predmet'] not in classes:
+            classes.append(entry['predmet'])
+        for lecturer in entry['nastavnik']:
+            if lecturer not in lecturers:
+                lecturers.append(lecturer)
         for group in entry['grupe']:
             if group not in groups:
                 groups.append(group)
-
-    return {'classrooms': sorted(classrooms), 'lecturers': sorted(lecturers), 'groups': sorted(groups)}
+    return {'classrooms': sorted(classrooms), 'lecturers': sorted(lecturers),
+            'groups': sorted(groups), 'classes': sorted(classes)}
 
 
 def get_existing_calendars(service):
